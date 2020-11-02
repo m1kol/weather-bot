@@ -38,7 +38,7 @@ func NewProvider(apiKey string) *Provider_ {
 }
 
 func (prov *Provider_) GetWeather(city string, days int) (Response, error) {
-	prov.config["city"] = city
+	prov.config["q"] = city
 	prov.config["cnt"] = strconv.Itoa(8*days)
 
 	fmt.Println(prov.config)
