@@ -2,15 +2,17 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
 	"strconv"
-	"time"
 
+	"github.com/go-resty/resty/v2"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
-	"github.com/go-resty/resty"
 )
+
+// Provider classes and methods
 
 const (
 	forecastUrl = "https://api.openweathermap.org/data/2.5/forecast"
@@ -44,7 +46,6 @@ func (prov *Provider_) GetWeather(city string, days int) (Response, error) {
 	fmt.Println(prov.config)
 
 	resp, err := prov.httpClient.R().SetQueryParams(prov.config).Get(forecastUrl)
-	fmt.Println(resp)
 	if err != nil {
 		return Response{}, fmt.Errorf("could not perform GET request: %w", err)
 	}
@@ -61,20 +62,22 @@ func (prov *Provider_) GetWeather(city string, days int) (Response, error) {
 }
 
 type Response struct {
-	city 		string 			`json:"city.name"`
-	weatherInfo []WeatherInfo 	`json:"list"`
+	City        string        `json:"city.name"`
+	WeatherInfo []WeatherInfo `json:"list"`
 }
 
 type WeatherInfo struct {
-	time        time.Time `json:"dt"`
-	temp        float32   `json:"main.temp"`
-	maxTemp     float32   `json:"main.temp_max"`
-	minTemp     float32   `json:"main.temp_min"`
-	feels_like  float32   `json:"main.feels_like"`
-	weatherType string    `json:"weather.description"`
-	windSpeed   float32   `json:"wind.speed"`
-	pop         float32   `json:"pop"`
+	Time        string  `json:"dt_txt"`
+	Temp        float32 `json:"main.temp"`
+	MaxTemp     float32 `json:"main.temp_max"`
+	MinTemp     float32 `json:"main.temp_min"`
+	Feels_like  float32 `json:"main.feels_like"`
+	WeatherType string  `json:"weather.description"`
+	WindSpeed   float32 `json:"wind.speed"`
+	Pop         float32 `json:"pop"`
 }
+
+// Bot classes and methods
 
 type Bot struct {
 	api *tgbotapi.BotAPI
@@ -91,16 +94,28 @@ func NewBot(token string) (*Bot, error) {
 	}, nil
 }
 
+// Initialization and main
+
+var (
+	apiToken	string
+	botToken		string
+)
+
+func init() {
+	flag.StringVar(&apiToken, "weather-api-token", "", "OpenWeather API token")
+	flag.StringVar(&botToken, "bot-token", "", "Telegram Bot API token")
+	flag.Parse()
+}
+
 func main() {
-	provider := NewProvider("myKey")
+
+	fmt.Printf("api_key: %v \t bot_token: %v\n", apiToken, botToken)
+	provider := NewProvider(apiToken)
 	city := "Долгопрудный"
 	tmp, err := provider.GetWeather(city, 5)
 	if err != nil {
 		log.Fatalf("Failed to get weather information: %w", err)
 	}
 
-	fmt.Printf("Погода в %s\n", tmp.city)
-	for i := 0; i < len(tmp.weatherInfo); i++ {
-		fmt.Println(tmp.weatherInfo[i])
-	}
+	fmt.Println(tmp)
 }
