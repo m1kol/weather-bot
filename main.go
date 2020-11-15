@@ -43,8 +43,6 @@ func (prov *Provider_) GetWeather(city string, days int) (Response, error) {
 	prov.config["q"] = city
 	prov.config["cnt"] = strconv.Itoa(8*days)
 
-	fmt.Println(prov.config)
-
 	resp, err := prov.httpClient.R().SetQueryParams(prov.config).Get(forecastUrl)
 	if err != nil {
 		return Response{}, fmt.Errorf("could not perform GET request: %w", err)
@@ -62,18 +60,26 @@ func (prov *Provider_) GetWeather(city string, days int) (Response, error) {
 }
 
 type Response struct {
-	City        string        `json:"city.name"`
-	WeatherInfo []WeatherInfo `json:"list"`
+	City struct {
+		Name string `json:"name"`
+	} `json:"city"`
+	WeatherInfo	[]WeatherInfo `json:"list"`
 }
 
 type WeatherInfo struct {
-	Time        string  `json:"dt_txt"`
-	Temp        float32 `json:"main.temp"`
-	MaxTemp     float32 `json:"main.temp_max"`
-	MinTemp     float32 `json:"main.temp_min"`
-	Feels_like  float32 `json:"main.feels_like"`
-	WeatherType string  `json:"weather.description"`
-	WindSpeed   float32 `json:"wind.speed"`
+	Time string	`json:"dt_txt"`
+	Main struct {
+		Temp        float32 `json:"temp"`
+		MaxTemp     float32 `json:"temp_max"`
+		MinTemp     float32 `json:"temp_min"`
+		FeelsLike	float32 `json:"feels_like"`
+	} `json:"main"`
+	Weather []struct {
+		Description string `json:"description"`
+	} `json:"weather"`
+	Wind struct {
+		Speed float32 `json:"speed"`
+	} `json:"wind"`
 	Pop         float32 `json:"pop"`
 }
 
@@ -97,25 +103,24 @@ func NewBot(token string) (*Bot, error) {
 // Initialization and main
 
 var (
-	apiToken	string
-	botToken		string
+	apiKey		string
+	botToken	string
 )
 
 func init() {
-	flag.StringVar(&apiToken, "weather-api-token", "", "OpenWeather API token")
+	flag.StringVar(&apiKey, "api-key", "", "OpenWeather API token")
 	flag.StringVar(&botToken, "bot-token", "", "Telegram Bot API token")
 	flag.Parse()
 }
 
 func main() {
-
-	fmt.Printf("api_key: %v \t bot_token: %v\n", apiToken, botToken)
-	provider := NewProvider(apiToken)
+	provider := NewProvider(apiKey)
 	city := "Долгопрудный"
-	tmp, err := provider.GetWeather(city, 5)
+	res, err := provider.GetWeather(city, 5)
 	if err != nil {
 		log.Fatalf("Failed to get weather information: %w", err)
 	}
 
-	fmt.Println(tmp)
+	fmt.Println(res.City.Name)
+	fmt.Println(res)
 }
