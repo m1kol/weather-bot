@@ -7,8 +7,6 @@ import (
 	"github.com/m1kol/weather-bot/provider"
 )
 
-// Initialization and main
-
 var (
 	apiKey		string
 	botToken	string
@@ -27,17 +25,5 @@ func main() {
 		fmt.Errorf("error creating bot: %v", err)
 	}
 
-	//log.Printf("euthorized on account %v", bot.api.Self.UserName)
-
 	bot.Run()
-
-	//city := "Долгопрудный"
-	//
-	//res, err := provider.GetWeather(city, 5)
-	//if err != nil {
-	//	log.Fatalf("Failed to get weather information: %w", err)
-	//}
-	//
-	//fmt.Println(res.City.Name)
-	//fmt.Println(res)
 }

@@ -19,10 +19,6 @@ type Provider struct {
 	config map[string]string
 }
 
-//type Provider interface {
-//	GetWeather(city string, days int)
-//}
-
 func NewProvider(apiKey string) *Provider {
 	return &Provider{
 		httpClient: resty.New(),
