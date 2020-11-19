@@ -2,9 +2,9 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"github.com/m1kol/weather-bot/bot"
 	"github.com/m1kol/weather-bot/provider"
+	"log"
 )
 
 var (
@@ -19,11 +19,11 @@ func init() {
 }
 
 func main() {
-	provider := provider.NewProvider(apiKey)
-	bot, err := bot.NewBot(botToken, provider)
+	prov := provider.NewProvider(apiKey)
+	b, err := bot.NewBot(botToken, prov)
 	if err != nil {
-		fmt.Errorf("error creating bot: %v", err)
+		log.Printf("error creating bot: %v", err)
 	}
 
-	bot.Run()
+	b.Run()
 }
