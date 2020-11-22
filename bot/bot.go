@@ -22,7 +22,7 @@ const (
 `
 	helpText = `I understand commands: /forecast.
 Usage:
-* /forecast city_name`
+/forecast city_name`
 	welcomeText = `Hello, I'm a weather bot! I understand commands /forecast!
 * /forecast command will give you a weather forecast for the day.`
 )

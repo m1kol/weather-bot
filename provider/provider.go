@@ -16,23 +16,21 @@ const (
 
 type Provider struct {
 	httpClient *resty.Client
-	config map[string]string
 }
 
 func NewProvider(apiKey string) *Provider {
-	return &Provider{
-		httpClient: resty.New(),
-		config: map[string]string{
-			"lang": "ru",
-			"units": "metric",
-			"appid": apiKey,
-		},
-	}
+	client := resty.New()
+	client.SetQueryParams(map[string]string{
+		"lang": "ru",
+		"units": "metric",
+		"appid": apiKey,
+	})
+
+	return &Provider{httpClient: client}
 }
 
 func (prov *Provider) GetForecast(city string) (Forecast, error) {
-	prov.config["q"] = city
-	resp, err := prov.httpClient.R().SetQueryParams(prov.config).Get(weatherUrl)
+	resp, err := prov.httpClient.R().SetQueryParam("q", city).Get(weatherUrl)
 	if err != nil {
 		return Forecast{}, fmt.Errorf("could not perform GET request: %w", err)
 	}
@@ -44,12 +42,12 @@ func (prov *Provider) GetForecast(city string) (Forecast, error) {
 	if err := json.Unmarshal(resp.Body(), &cityInfo); err != nil {
 		return Forecast{}, fmt.Errorf("failed to unmarshall data: %w", err)
 	}
-	prov.config["lon"] = strconv.FormatFloat(cityInfo.Coord.Lon, 'f', -1, 32)
-	prov.config["lat"] = strconv.FormatFloat(cityInfo.Coord.Lat, 'f', -1, 32)
-	prov.config["exclude"] = "minutely,hourly,alerts,current"
-	delete(prov.config, "q")
 
-	resp, err = prov.httpClient.R().SetQueryParams(prov.config).Get(onecallUrl)
+	resp, err = prov.httpClient.R().SetQueryParams(map[string]string{
+		"lon": strconv.FormatFloat(cityInfo.Coord.Lon, 'f', -1, 32),
+		"lat": strconv.FormatFloat(cityInfo.Coord.Lat, 'f', -1, 32),
+		"exclude": "minutely,hourly,alerts,current",
+	}).Get(onecallUrl)
 	if err != nil {
 		return Forecast{}, fmt.Errorf("could not perform GET request: %w", err)
 	}
@@ -67,9 +65,10 @@ func (prov *Provider) GetForecast(city string) (Forecast, error) {
 }
 
 func (prov *Provider) GetWeather(city string, days int) (Response, error) {
-	prov.config["q"] = city
-	prov.config["cnt"] = strconv.Itoa(8*days)
-	resp, err := prov.httpClient.R().SetQueryParams(prov.config).Get(forecastUrl)
+	resp, err := prov.httpClient.R().SetQueryParams(map[string]string{
+		"q": city,
+		"cnt": strconv.Itoa(8*days),
+	}).Get(forecastUrl)
 	if err != nil {
 		return Response{}, fmt.Errorf("could not perform GET request: %w", err)
 	}
