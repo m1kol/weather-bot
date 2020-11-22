@@ -87,6 +87,8 @@ func (bot *Bot) ProcessMessage(updates tgbotapi.UpdatesChannel) {
 			forecast, err := bot.provider.GetForecast(city)
 			if err != nil {
 				log.Printf("error getting a response from weather provider: %v", err)
+				msg.Text = fmt.Sprintf("Не удалось получить погоду в городе %v", city)
+				break
 			}
 
 			builder := strings.Builder{}
