@@ -20,11 +20,10 @@ const (
 Скорость ветра: %.1f м/с
 
 `
-	helpText = `I understand commands: /forecast.
-Usage:
+	helpText = `Я понимаю команды: /forecast.
+Использование:
 /forecast city_name`
-	welcomeText = `Hello, I'm a weather bot! I understand commands /forecast!
-* /forecast command will give you a weather forecast for the day.`
+	welcomeText = `Привет! Я бот прогноза погоды! Пока я понимаю только команду /forecast! С её помощью ты сможешь получить прогноз погоды на ближайшие дни.`
 )
 
 type Bot struct {
@@ -107,7 +106,7 @@ func (bot *Bot) ProcessMessage(updates tgbotapi.UpdatesChannel) {
 			msg.Text = builder.String()
 
 		default:
-			msg.Text = "I don't know that command.\n\n" + helpText
+			msg.Text = "Я не знаю такой команды.\n\n" + helpText
 		}
 
 		if _, err := bot.api.Send(msg); err != nil {
