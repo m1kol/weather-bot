@@ -6,14 +6,25 @@ import (
 	"github.com/m1kol/weather-bot/provider"
 	"log"
 	"strings"
+	"time"
 )
 
-const replyTemplate = `Дата и время: %v
-Температура: %.1f С	Максимальная: %.1f С Минимальная: %.1f С Ощущается как: %.1f С
+const (
+	forecastTemplate = `Дата и время: %v
+Температура (ощущается):
+* утром %.f (%.f) С 
+* днём  %.f (%.f) С
+* вечером  %.f (%.f) С
+* ночью %.f (%.f) С
 Погода: %v
 Скорость ветра: %.1f м/с
 
 `
+	helpText = `Я понимаю команды: /forecast.
+Использование:
+/forecast city_name`
+	welcomeText = `Привет! Я бот прогноза погоды! Пока я понимаю только команду /forecast! С её помощью ты сможешь получить прогноз погоды на ближайшие дни.`
+)
 
 type Bot struct {
 	api *tgbotapi.BotAPI
@@ -38,7 +49,7 @@ func (bot *Bot) Run() {
 
 	updates, err := bot.api.GetUpdatesChan(u)
 	if err != nil {
-		fmt.Errorf("error getting updates: %v", err)
+		log.Printf("error getting updates: %v", err)
 	}
 
 	bot.ProcessMessage(updates)
@@ -55,41 +66,47 @@ func (bot *Bot) ProcessMessage(updates tgbotapi.UpdatesChannel) {
 			continue
 		}
 
-		// Create a new MessageConfig. We don't have text yet,
-		// so we leave it empty.
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 
 		// Extract the command from the Message.
 		switch update.Message.Command() {
 		case "start":
-			msg.Text = "Hello, I'm a weather bot! I understand commands /sayhi, /status and /weather! " +
-				"/weather commands will give you a weather forecast for the day."
+			msg.Text = welcomeText
+
 		case "help":
-			msg.Text = "I understand /sayhi, /status and /weather."
-		case "sayhi":
-			msg.Text = "Hi :)"
-		case "status":
-			msg.Text = "I'm ok."
-		case "weather":
-			resp, err := bot.provider.GetWeather("Долгопрудный", 1)
-			if err != nil {
-				fmt.Errorf("error getting a response from weather provider: %v", err)
+			msg.Text = helpText
+
+		case "forecast":
+			city := update.Message.CommandArguments()
+			if len(city) == 0 {
+				msg.Text = helpText
+				break
 			}
 
-			builder := &strings.Builder{}
-			fmt.Fprintf(builder, "Weather in a city %v\n\n", resp.City.Name)
-			for i := 0; i < len(resp.WeatherInfo); i++ {
-				fmt.Fprintf(builder, replyTemplate,
-					resp.WeatherInfo[i].Time,
-					resp.WeatherInfo[i].Main.Temp, resp.WeatherInfo[i].Main.MaxTemp,
-					resp.WeatherInfo[i].Main.MinTemp, resp.WeatherInfo[i].Main.FeelsLike,
-					resp.WeatherInfo[i].Weather[0].Description, resp.WeatherInfo[i].Wind.Speed,
+			forecast, err := bot.provider.GetForecast(city)
+			if err != nil {
+				log.Printf("error getting a response from weather provider: %v", err)
+				msg.Text = fmt.Sprintf("Не удалось получить погоду в городе %v", city)
+				break
+			}
+
+			builder := strings.Builder{}
+			fmt.Fprintf(&builder, "Погода в городе %v\n\n", forecast.City)
+			for _, day := range forecast.Daily {
+				fmt.Fprintf(&builder, forecastTemplate,
+					time.Unix(day.Dt, 0),
+					day.Temp.Morn, day.FeelsLike.Morn,
+					day.Temp.Day, day.FeelsLike.Day,
+					day.Temp.Eve, day.FeelsLike.Eve,
+					day.Temp.Night, day.FeelsLike.Night,
+					day.Weather[0].Description, day.WindSpeed,
 				)
 			}
 
 			msg.Text = builder.String()
+
 		default:
-			msg.Text = "I don't know that command"
+			msg.Text = "Я не знаю такой команды.\n\n" + helpText
 		}
 
 		if _, err := bot.api.Send(msg); err != nil {
