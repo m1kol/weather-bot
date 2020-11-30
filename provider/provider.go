@@ -14,6 +14,11 @@ const (
 	onecallUrl = "https://api.openweathermap.org/data/2.5/onecall"
 )
 
+//go:generate mockgen -destination mock/provider.go -package mock . Provider_
+type Provider_ interface {
+	GetForecast(city string) (Forecast, error)
+}
+
 type Provider struct {
 	httpClient *resty.Client
 }

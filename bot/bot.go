@@ -27,11 +27,11 @@ const (
 )
 
 type Bot struct {
-	api *tgbotapi.BotAPI
-	provider *provider.Provider
+	api 	*tgbotapi.BotAPI
+	provider provider.Provider_
 }
 
-func NewBot(token string, provider *provider.Provider) (*Bot, error) {
+func NewBot(token string, provider provider.Provider_) (*Bot, error) {
 	api, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create a new bot: %w", err)

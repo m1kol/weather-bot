@@ -1,7 +1,10 @@
 package provider
 
 import (
+	"net/http"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -21,5 +24,12 @@ func TestProvider_GetForecast(t *testing.T) {
 	if err != nil {
 		t.Log("Error should be nil, but got:", err)
 		t.Fail()
+	}
+}
+
+func handleRequest(t *testing.T, city string) http.HandlerFunc {
+	return func(rw http.ResponseWriter, req *http.Request) {
+		require.Equal(t, testApiKey, req.URL.Query().Get("appid"), "Invalid authentication key")
+		require.Equal(t, testCity, req.URL.Query().Get("q"))
 	}
 }
