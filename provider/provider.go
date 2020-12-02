@@ -14,16 +14,16 @@ const (
 	onecallUrl = "https://api.openweathermap.org/data/2.5/onecall"
 )
 
-//go:generate mockgen -destination mock/provider.go -package mock . Provider_
-type Provider_ interface {
+//go:generate mockgen -destination mock/provider.go -package mock . Provider
+type Provider interface {
 	GetForecast(city string) (Forecast, error)
 }
 
-type Provider struct {
+type OWMProvider struct {
 	httpClient *resty.Client
 }
 
-func NewProvider(apiKey string) *Provider {
+func NewProvider(apiKey string) *OWMProvider {
 	client := resty.New()
 	client.SetQueryParams(map[string]string{
 		"lang": "ru",
@@ -31,16 +31,16 @@ func NewProvider(apiKey string) *Provider {
 		"appid": apiKey,
 	})
 
-	return &Provider{httpClient: client}
+	return &OWMProvider{httpClient: client}
 }
 
-func (prov *Provider) GetForecast(city string) (Forecast, error) {
+func (prov *OWMProvider) GetForecast(city string) (Forecast, error) {
 	resp, err := prov.httpClient.R().SetQueryParam("q", city).Get(weatherUrl)
 	if err != nil {
 		return Forecast{}, fmt.Errorf("could not perform GET request: %w", err)
 	}
 	if resp.StatusCode() != http.StatusOK {
-		return Forecast{}, fmt.Errorf("unexpected status code: %v", resp.StatusCode())
+		return Forecast{}, fmt.Errorf("unexpected status code 1: %v", resp.StatusCode())
 	}
 
 	var cityInfo City
@@ -57,7 +57,7 @@ func (prov *Provider) GetForecast(city string) (Forecast, error) {
 		return Forecast{}, fmt.Errorf("could not perform GET request: %w", err)
 	}
 	if resp.StatusCode() != http.StatusOK {
-		return Forecast{}, fmt.Errorf("unexpected status code: %v", resp.StatusCode())
+		return Forecast{}, fmt.Errorf("unexpected status code 2: %v", resp.StatusCode())
 	}
 
 	var ret Forecast
@@ -69,7 +69,8 @@ func (prov *Provider) GetForecast(city string) (Forecast, error) {
 	return ret, nil
 }
 
-func (prov *Provider) GetWeather(city string, days int) (Response, error) {
+// Deprecated: needs to be removed or reworked and reused in another case
+func (prov *OWMProvider) GetWeather(city string, days int) (Response, error) {
 	resp, err := prov.httpClient.R().SetQueryParams(map[string]string{
 		"q": city,
 		"cnt": strconv.Itoa(8*days),
