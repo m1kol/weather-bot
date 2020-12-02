@@ -9,7 +9,6 @@ import (
 )
 
 const (
-	forecastUrl = "https://api.openweathermap.org/data/2.5/forecast"
 	weatherUrl = "https://api.openweathermap.org/data/2.5/weather"
 	onecallUrl = "https://api.openweathermap.org/data/2.5/onecall"
 )
@@ -40,7 +39,7 @@ func (prov *OWMProvider) GetForecast(city string) (Forecast, error) {
 		return Forecast{}, fmt.Errorf("could not perform GET request: %w", err)
 	}
 	if resp.StatusCode() != http.StatusOK {
-		return Forecast{}, fmt.Errorf("unexpected status code 1: %v", resp.StatusCode())
+		return Forecast{}, fmt.Errorf("unexpected status code: %v", resp.StatusCode())
 	}
 
 	var cityInfo City
@@ -57,7 +56,7 @@ func (prov *OWMProvider) GetForecast(city string) (Forecast, error) {
 		return Forecast{}, fmt.Errorf("could not perform GET request: %w", err)
 	}
 	if resp.StatusCode() != http.StatusOK {
-		return Forecast{}, fmt.Errorf("unexpected status code 2: %v", resp.StatusCode())
+		return Forecast{}, fmt.Errorf("unexpected status code: %v", resp.StatusCode())
 	}
 
 	var ret Forecast
@@ -65,27 +64,6 @@ func (prov *OWMProvider) GetForecast(city string) (Forecast, error) {
 		return Forecast{}, fmt.Errorf("failed to unmarshall data: %v", err)
 	}
 	ret.City = city
-
-	return ret, nil
-}
-
-// Deprecated: needs to be removed or reworked and reused in another case
-func (prov *OWMProvider) GetWeather(city string, days int) (Response, error) {
-	resp, err := prov.httpClient.R().SetQueryParams(map[string]string{
-		"q": city,
-		"cnt": strconv.Itoa(8*days),
-	}).Get(forecastUrl)
-	if err != nil {
-		return Response{}, fmt.Errorf("could not perform GET request: %w", err)
-	}
-	if resp.StatusCode() != http.StatusOK {
-		return Response{}, fmt.Errorf("unexpected status code: %v", resp.StatusCode())
-	}
-
-	var ret Response
-	if err := json.Unmarshal(resp.Body(), &ret); err != nil {
-		return Response{}, fmt.Errorf("failed to unmarshall data: %w", err)
-	}
 
 	return ret, nil
 }
@@ -121,28 +99,4 @@ type Daily struct {
 		Description string `json:"description"`
 	} `json:"weather"`
 	WindSpeed float32 `json:"wind_speed"`
-}
-
-type Response struct {
-	City struct {
-		Name string `json:"name"`
-	} `json:"city"`
-	WeatherInfo	[]WeatherInfo `json:"list"`
-}
-
-type WeatherInfo struct {
-	Time string	`json:"dt_txt"`
-	Main struct {
-		Temp        float32 `json:"temp"`
-		MaxTemp     float32 `json:"temp_max"`
-		MinTemp     float32 `json:"temp_min"`
-		FeelsLike	float32 `json:"feels_like"`
-	} `json:"main"`
-	Weather []struct {
-		Description string `json:"description"`
-	} `json:"weather"`
-	Wind struct {
-		Speed float32 `json:"speed"`
-	} `json:"wind"`
-	Pop	float32 `json:"pop"`
 }
