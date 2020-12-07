@@ -5,4 +5,6 @@
 [![Coverage Status](https://coveralls.io/repos/github/m1kol/weather-bot/badge.svg?branch=main)](https://coveralls.io/github/m1kol/weather-bot?branch=main)
 
 
-A repository for a weather Telegram bot project
+Телеграм-бот для получения прогноза погоды.
+
+Используйте `/forecast CITY_NAME` для получения прогноза погоды в желаемом городе. Принимаются названия как на английском, так и на русском.
