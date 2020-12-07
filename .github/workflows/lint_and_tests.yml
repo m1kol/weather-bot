@@ -30,7 +30,7 @@ jobs:
       - name: Run tests
         run: go test -race -covermode=atomic -coverprofile=$GITHUB_WORKSPACE/profile.cov ./...
       - name: Submit coverage
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        if: ${{ (github.event_name == 'push' || github.event_name == 'pull_request') && github.ref == 'refs/heads/main' }}
         run: $(go env GOPATH)/bin/goveralls -service="github" -coverprofile=$GITHUB_WORKSPACE/profile.cov
         env:
           COVERALLS_TOKEN: ${{ secrets.COVERALLS_TOKEN }}
