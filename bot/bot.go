@@ -70,6 +70,8 @@ func (bot *Bot) processMessage(updates tgbotapi.UpdatesChannel) {
 
 		var msg tgbotapi.MessageConfig
 
+		// Dummy comment
+		
 		// Extract the command from the Message.
 		switch update.Message.Command() {
 		case "start":
