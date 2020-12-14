@@ -27,8 +27,9 @@ const (
 )
 
 type Bot struct {
-	api 	*tgbotapi.BotAPI
-	provider provider.Provider
+	api 			*tgbotapi.BotAPI
+	provider 		provider.Provider
+	subscriptions  	map[int64][]string
 }
 
 func NewBot(token string, provider provider.Provider) (*Bot, error) {
@@ -40,6 +41,7 @@ func NewBot(token string, provider provider.Provider) (*Bot, error) {
 	return &Bot{
 		api: api,
 		provider: provider,
+		subscriptions: map[int64][]string{},
 	}, nil
 }
 
@@ -52,10 +54,10 @@ func (bot *Bot) Run() {
 		log.Printf("error getting updates: %v", err)
 	}
 
-	bot.ProcessMessage(updates)
+	bot.processMessage(updates)
 }
 
-func (bot *Bot) ProcessMessage(updates tgbotapi.UpdatesChannel) {
+func (bot *Bot) processMessage(updates tgbotapi.UpdatesChannel) {
 	for update := range updates {
 		if update.Message == nil {
 			continue
@@ -66,51 +68,82 @@ func (bot *Bot) ProcessMessage(updates tgbotapi.UpdatesChannel) {
 			continue
 		}
 
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
+		var msg tgbotapi.MessageConfig
 
 		// Extract the command from the Message.
 		switch update.Message.Command() {
 		case "start":
-			msg.Text = welcomeText
+			msg = tgbotapi.NewMessage(update.Message.Chat.ID, welcomeText)
 
 		case "help":
-			msg.Text = helpText
+			msg = tgbotapi.NewMessage(update.Message.Chat.ID, helpText)
 
 		case "forecast":
-			city := update.Message.CommandArguments()
-			if len(city) == 0 {
-				msg.Text = helpText
-				break
-			}
+			msg = bot.processForecast(update)
 
-			forecast, err := bot.provider.GetForecast(city)
-			if err != nil {
-				log.Printf("error getting a response from weather provider: %v", err)
-				msg.Text = fmt.Sprintf("Не удалось получить погоду в городе %v", city)
-				break
-			}
-
-			builder := strings.Builder{}
-			fmt.Fprintf(&builder, "Погода в городе %v\n\n", forecast.City)
-			for _, day := range forecast.Daily {
-				fmt.Fprintf(&builder, forecastTemplate,
-					time.Unix(day.Dt, 0),
-					day.Temp.Morn, day.FeelsLike.Morn,
-					day.Temp.Day, day.FeelsLike.Day,
-					day.Temp.Eve, day.FeelsLike.Eve,
-					day.Temp.Night, day.FeelsLike.Night,
-					day.Weather[0].Description, day.WindSpeed,
-				)
-			}
-
-			msg.Text = builder.String()
+		case "subscribe":
+			msg = bot.processSubscribe(update)
 
 		default:
-			msg.Text = "Я не знаю такой команды.\n\n" + helpText
+			msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Я не знаю такой команды.\n\n" + helpText)
 		}
 
 		if _, err := bot.api.Send(msg); err != nil {
 			log.Panic(err)
 		}
 	}
+}
+
+func (bot *Bot) processForecast(update tgbotapi.Update) tgbotapi.MessageConfig {
+	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
+
+	city := update.Message.CommandArguments()
+	if len(city) == 0 {
+		msg.Text = helpText
+		return msg
+	}
+
+	forecast, err := bot.provider.GetForecast(city)
+	if err != nil {
+		log.Printf("error getting a response from weather provider: %v", err)
+		msg.Text = fmt.Sprintf("Не удалось получить погоду в городе %v", city)
+		return msg
+	}
+
+	builder := strings.Builder{}
+	fmt.Fprintf(&builder, "Погода в городе %v\n\n", forecast.City)
+	for _, day := range forecast.Daily {
+		fmt.Fprintf(&builder, forecastTemplate,
+			time.Unix(day.Dt, 0),
+			day.Temp.Morn, day.FeelsLike.Morn,
+			day.Temp.Day, day.FeelsLike.Day,
+			day.Temp.Eve, day.FeelsLike.Eve,
+			day.Temp.Night, day.FeelsLike.Night,
+			day.Weather[0].Description, day.WindSpeed,
+		)
+	}
+	msg.Text = builder.String()
+
+	return msg
+}
+
+func (bot *Bot) processSubscribe(update tgbotapi.Update) tgbotapi.MessageConfig {
+	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
+
+	city := update.Message.CommandArguments()
+	if len(city) == 0 {
+		msg.Text = helpText
+		return msg
+	}
+
+	_, err := bot.provider.GetForecast(city)
+	if err != nil {
+		msg.Text = fmt.Sprintf("Не удаётся получить погоду в городе %v, проверьте правильность написания.", city)
+		return msg
+	}
+
+	bot.subscriptions[update.Message.Chat.ID] = append(bot.subscriptions[update.Message.Chat.ID], city)
+	msg.Text = "Вы были успешно подписаны на прогноз погоды! Вы будете получать прогноз каждый день в 9 утра."
+
+	return msg
 }
