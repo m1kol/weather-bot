@@ -1,0 +1,11 @@
+version: "3"
+
+services:
+  weather-bot:
+    image: kolesovma/weather-bot:latest
+    container_name: weather-bot
+    restart: unless-stopped
+    env_file:
+    - secrets.env
+    expose:
+    - 8181
